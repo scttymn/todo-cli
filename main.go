@@ -74,19 +74,19 @@ var addCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		todoItem := args[0]
 		
-		branch, err := pkg.GetCurrentBranch()
+		featureName, err := pkg.GetFeatureName()
 		if err != nil {
-			fmt.Printf("Error getting current branch: %v\n", err)
+			fmt.Printf("Error getting feature name: %v\n", err)
 			return
 		}
 		
-		err = pkg.AddTodoItem(branch, todoItem)
+		err = pkg.AddTodoItem(featureName, todoItem)
 		if err != nil {
 			fmt.Printf("Error adding todo item: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Added todo item to branch '%s': %s\n", branch, todoItem)
+		fmt.Printf("Added todo item to feature '%s': %s\n", featureName, todoItem)
 	},
 }
 
@@ -97,9 +97,9 @@ var checkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		itemNumber := args[0]
 		
-		branch, err := pkg.GetCurrentBranch()
+		featureName, err := pkg.GetFeatureName()
 		if err != nil {
-			fmt.Printf("Error getting current branch: %v\n", err)
+			fmt.Printf("Error getting feature name: %v\n", err)
 			return
 		}
 		
@@ -109,13 +109,13 @@ var checkCmd = &cobra.Command{
 			return
 		}
 		
-		err = pkg.CheckTodoItem(branch, itemID)
+		err = pkg.CheckTodoItem(featureName, itemID)
 		if err != nil {
 			fmt.Printf("Error checking todo item: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Marked item %d as completed in branch '%s'\n", itemID, branch)
+		fmt.Printf("Marked item %d as completed in feature '%s'\n", itemID, featureName)
 	},
 }
 
@@ -126,9 +126,9 @@ var uncheckCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		itemNumber := args[0]
 		
-		branch, err := pkg.GetCurrentBranch()
+		featureName, err := pkg.GetFeatureName()
 		if err != nil {
-			fmt.Printf("Error getting current branch: %v\n", err)
+			fmt.Printf("Error getting feature name: %v\n", err)
 			return
 		}
 		
@@ -138,13 +138,13 @@ var uncheckCmd = &cobra.Command{
 			return
 		}
 		
-		err = pkg.UncheckTodoItem(branch, itemID)
+		err = pkg.UncheckTodoItem(featureName, itemID)
 		if err != nil {
 			fmt.Printf("Error unchecking todo item: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Marked item %d as not completed in branch '%s'\n", itemID, branch)
+		fmt.Printf("Marked item %d as not completed in feature '%s'\n", itemID, featureName)
 	},
 }
 
@@ -152,13 +152,13 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show current todo progress for the active branch",
 	Run: func(cmd *cobra.Command, args []string) {
-		branch, err := pkg.GetCurrentBranch()
+		featureName, err := pkg.GetFeatureName()
 		if err != nil {
-			fmt.Printf("Error getting current branch: %v\n", err)
+			fmt.Printf("Error getting feature name: %v\n", err)
 			return
 		}
 		
-		err = pkg.DisplayTodoList(branch)
+		err = pkg.DisplayTodoList(featureName)
 		if err != nil {
 			fmt.Printf("Error displaying todo list: %v\n", err)
 			return

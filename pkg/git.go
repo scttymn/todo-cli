@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -30,6 +31,21 @@ func GetCurrentBranch() (string, error) {
 	}
 
 	return head.Hash().String()[:7], nil
+}
+
+func GetFeatureName() (string, error) {
+	branchName, err := GetCurrentBranch()
+	if err != nil {
+		return "", err
+	}
+	
+	// If it's a feature branch (feature/name), extract just the feature name
+	if strings.HasPrefix(branchName, "feature/") {
+		return strings.TrimPrefix(branchName, "feature/"), nil
+	}
+	
+	// Otherwise return the full branch name
+	return branchName, nil
 }
 
 func CreateBranch(branchName string) error {

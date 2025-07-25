@@ -1,8 +1,5 @@
-# Todo files (branch-specific)
-.todo/*.md
-
-# Keep the development plan
-!.todo/cli-development.md
+# Todo directory (local only)
+.todo/
 
 # Go build artifacts
 todo-cli

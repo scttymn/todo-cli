@@ -1,0 +1,22 @@
+# Todo files (branch-specific)
+.todo/*.md
+
+# Keep the development plan
+!.todo/cli-development.md
+
+# Go build artifacts
+todo-cli
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work

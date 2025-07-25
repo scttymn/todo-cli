@@ -13,16 +13,16 @@
 - [x] Test basic CLI structure
 
 ## Phase 3: Git Integration
-- [ ] Add git library dependency
-- [ ] Implement current branch detection
-- [ ] Add branch switching functionality
-- [ ] Test git operations
+- [x] Add git library dependency
+- [x] Implement current branch detection
+- [x] Add branch switching functionality
+- [x] Test git operations
 
 ## Phase 4: Todo File Management
-- [ ] Create .todo directory structure
-- [ ] Implement markdown todo file creation
-- [ ] Add todo item parsing from markdown
-- [ ] Add todo item writing to markdown
+- [x] Create .todo directory structure
+- [x] Implement markdown todo file creation
+- [x] Add todo item parsing from markdown
+- [x] Add todo item writing to markdown
 
 ## Phase 5: Todo Operations
 - [ ] Implement todo add command

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/scttymn/todo-cli/pkg"
 	"github.com/spf13/cobra"
@@ -34,7 +35,14 @@ var initCmd = &cobra.Command{
 		}
 		
 		fmt.Printf("Created and switched to branch '%s'\n", branchName)
-		// TODO: Create .todo file for this branch
+		
+		err = pkg.CreateTodoFile(branchName)
+		if err != nil {
+			fmt.Printf("Error creating todo file: %v\n", err)
+			return
+		}
+		
+		fmt.Printf("Initialized todo file: .todo/%s.md\n", branchName)
 	},
 }
 
@@ -44,8 +52,20 @@ var addCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		todoItem := args[0]
-		fmt.Printf("Adding todo item: %s\n", todoItem)
-		// TODO: Implement adding todo to current branch's file
+		
+		branch, err := pkg.GetCurrentBranch()
+		if err != nil {
+			fmt.Printf("Error getting current branch: %v\n", err)
+			return
+		}
+		
+		err = pkg.AddTodoItem(branch, todoItem)
+		if err != nil {
+			fmt.Printf("Error adding todo item: %v\n", err)
+			return
+		}
+		
+		fmt.Printf("Added todo item to branch '%s': %s\n", branch, todoItem)
 	},
 }
 
@@ -55,8 +75,26 @@ var checkCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		itemNumber := args[0]
-		fmt.Printf("Marking item %s as completed\n", itemNumber)
-		// TODO: Implement checking off todo items
+		
+		branch, err := pkg.GetCurrentBranch()
+		if err != nil {
+			fmt.Printf("Error getting current branch: %v\n", err)
+			return
+		}
+		
+		itemID, err := strconv.Atoi(itemNumber)
+		if err != nil {
+			fmt.Printf("Invalid item number: %s\n", itemNumber)
+			return
+		}
+		
+		err = pkg.CheckTodoItem(branch, itemID)
+		if err != nil {
+			fmt.Printf("Error checking todo item: %v\n", err)
+			return
+		}
+		
+		fmt.Printf("Marked item %d as completed in branch '%s'\n", itemID, branch)
 	},
 }
 
@@ -69,8 +107,12 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("Error getting current branch: %v\n", err)
 			return
 		}
-		fmt.Printf("Showing todo status for branch: %s\n", branch)
-		// TODO: Implement todo file reading and display
+		
+		err = pkg.DisplayTodoList(branch)
+		if err != nil {
+			fmt.Printf("Error displaying todo list: %v\n", err)
+			return
+		}
 	},
 }
 
@@ -86,7 +128,12 @@ var switchCmd = &cobra.Command{
 			return
 		}
 		fmt.Printf("Switched to branch '%s'\n", branchName)
-		// TODO: Implement todo display for switched branch
+		
+		err = pkg.DisplayTodoList(branchName)
+		if err != nil {
+			fmt.Printf("Error displaying todo list: %v\n", err)
+			return
+		}
 	},
 }
 

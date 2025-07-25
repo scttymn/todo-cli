@@ -92,6 +92,35 @@ var checkCmd = &cobra.Command{
 	},
 }
 
+var uncheckCmd = &cobra.Command{
+	Use:   "uncheck [item-number]",
+	Short: "Mark a todo item as not completed",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		itemNumber := args[0]
+		
+		branch, err := pkg.GetCurrentBranch()
+		if err != nil {
+			fmt.Printf("Error getting current branch: %v\n", err)
+			return
+		}
+		
+		itemID, err := strconv.Atoi(itemNumber)
+		if err != nil {
+			fmt.Printf("Invalid item number: %s\n", itemNumber)
+			return
+		}
+		
+		err = pkg.UncheckTodoItem(branch, itemID)
+		if err != nil {
+			fmt.Printf("Error unchecking todo item: %v\n", err)
+			return
+		}
+		
+		fmt.Printf("Marked item %d as not completed in branch '%s'\n", itemID, branch)
+	},
+}
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show current todo progress for the active branch",
@@ -143,6 +172,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(checkCmd)
+	rootCmd.AddCommand(uncheckCmd)
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(switchCmd)
 	rootCmd.AddCommand(versionCmd)

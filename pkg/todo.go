@@ -150,6 +150,20 @@ func CheckTodoItem(branchName string, itemID int) error {
 	return WriteTodoFile(branchName, todoList)
 }
 
+func UncheckTodoItem(branchName string, itemID int) error {
+	todoList, err := ParseTodoFile(branchName)
+	if err != nil {
+		return fmt.Errorf("failed to parse todo file: %w", err)
+	}
+
+	if itemID < 1 || itemID > len(todoList.Items) {
+		return fmt.Errorf("invalid item ID: %d", itemID)
+	}
+
+	todoList.Items[itemID-1].Completed = false
+	return WriteTodoFile(branchName, todoList)
+}
+
 func DisplayTodoList(branchName string) error {
 	todoList, err := ParseTodoFile(branchName)
 	if err != nil {

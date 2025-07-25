@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -37,22 +38,12 @@ func CreateBranch(branchName string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	repo, err := git.PlainOpen(wd)
+	// Use git command to create branch
+	cmd := exec.Command("git", "checkout", "-b", branchName)
+	cmd.Dir = wd
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("not a git repository or unable to open: %w", err)
-	}
-
-	head, err := repo.Head()
-	if err != nil {
-		return fmt.Errorf("failed to get HEAD: %w", err)
-	}
-
-	branchRef := plumbing.NewBranchReferenceName(branchName)
-	ref := plumbing.NewHashReference(branchRef, head.Hash())
-
-	err = repo.Storer.SetReference(ref)
-	if err != nil {
-		return fmt.Errorf("failed to create branch: %w", err)
+		return fmt.Errorf("failed to create branch %s: %s", branchName, string(output))
 	}
 
 	return nil
@@ -69,17 +60,19 @@ func SwitchBranch(branchName string) error {
 		return fmt.Errorf("not a git repository or unable to open: %w", err)
 	}
 
-	worktree, err := repo.Worktree()
+	// Check if branch exists
+	branchRef := plumbing.NewBranchReferenceName(branchName)
+	_, err = repo.Reference(branchRef, true)
 	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
+		return fmt.Errorf("branch %s does not exist: %w", branchName, err)
 	}
 
-	branchRef := plumbing.NewBranchReferenceName(branchName)
-	err = worktree.Checkout(&git.CheckoutOptions{
-		Branch: branchRef,
-	})
+	// Use git command directly to avoid working directory changes
+	cmd := exec.Command("git", "checkout", branchName)
+	cmd.Dir = wd
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to switch to branch %s: %w", branchName, err)
+		return fmt.Errorf("failed to switch to branch %s: %s", branchName, string(output))
 	}
 
 	return nil

@@ -28,12 +28,6 @@ var initCmd = &cobra.Command{
 			return
 		}
 		
-		err = pkg.SwitchBranch(branchName)
-		if err != nil {
-			fmt.Printf("Error switching to branch %s: %v\n", branchName, err)
-			return
-		}
-		
 		fmt.Printf("Created and switched to branch '%s'\n", branchName)
 		
 		err = pkg.CreateTodoFile(branchName)

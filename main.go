@@ -15,28 +15,55 @@ var rootCmd = &cobra.Command{
 	Long:  `todo is a CLI tool that manages todo lists tied to git branches, helping you track tasks for each feature or project.`,
 }
 
-var initCmd = &cobra.Command{
-	Use:   "init [branch-name]",
-	Short: "Create a new branch and initialize its todo list",
+var featureCmd = &cobra.Command{
+	Use:   "feature [feature-name]",
+	Short: "Create or switch to a feature branch and manage its todos",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		branchName := args[0]
+		featureName := args[0]
+		branchName := "feature/" + featureName
 		
-		err := pkg.CreateBranch(branchName)
+		// Check if branch exists
+		branchExists, err := pkg.BranchExists(branchName)
 		if err != nil {
-			fmt.Printf("Error creating branch %s: %v\n", branchName, err)
+			fmt.Printf("Error checking branch existence: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Created and switched to branch '%s'\n", branchName)
-		
-		err = pkg.CreateTodoFile(branchName)
-		if err != nil {
-			fmt.Printf("Error creating todo file: %v\n", err)
-			return
+		if branchExists {
+			// Branch exists, just switch to it
+			err = pkg.SwitchBranch(branchName)
+			if err != nil {
+				fmt.Printf("Error switching to branch %s: %v\n", branchName, err)
+				return
+			}
+			fmt.Printf("Switched to existing branch '%s'\n", branchName)
+		} else {
+			// Branch doesn't exist, create it
+			err = pkg.CreateBranch(branchName)
+			if err != nil {
+				fmt.Printf("Error creating branch %s: %v\n", branchName, err)
+				return
+			}
+			fmt.Printf("Created and switched to branch '%s'\n", branchName)
 		}
 		
-		fmt.Printf("Initialized todo file: .todo/%s.md\n", branchName)
+		// Ensure todo file exists
+		if !pkg.TodoFileExists(featureName) {
+			err = pkg.CreateTodoFile(featureName)
+			if err != nil {
+				fmt.Printf("Error creating todo file: %v\n", err)
+				return
+			}
+			fmt.Printf("Initialized todo file: .todo/%s.md\n", featureName)
+		}
+		
+		// Display current todos
+		err = pkg.DisplayTodoList(featureName)
+		if err != nil {
+			fmt.Printf("Error displaying todo list: %v\n", err)
+			return
+		}
 	},
 }
 
@@ -139,22 +166,14 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-var switchCmd = &cobra.Command{
-	Use:   "switch [branch-name]",
-	Short: "Switch to a branch and show its todo list",
-	Args:  cobra.ExactArgs(1),
+
+var featuresCmd = &cobra.Command{
+	Use:   "features",
+	Short: "List all features with their progress",
 	Run: func(cmd *cobra.Command, args []string) {
-		branchName := args[0]
-		err := pkg.SwitchBranch(branchName)
+		err := pkg.ListAllFeatures()
 		if err != nil {
-			fmt.Printf("Error switching to branch %s: %v\n", branchName, err)
-			return
-		}
-		fmt.Printf("Switched to branch '%s'\n", branchName)
-		
-		err = pkg.DisplayTodoList(branchName)
-		if err != nil {
-			fmt.Printf("Error displaying todo list: %v\n", err)
+			fmt.Printf("Error listing features: %v\n", err)
 			return
 		}
 	},
@@ -169,12 +188,12 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(featureCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)
 	rootCmd.AddCommand(statusCmd)
-	rootCmd.AddCommand(switchCmd)
+	rootCmd.AddCommand(featuresCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

@@ -49,6 +49,26 @@ func CreateBranch(branchName string) error {
 	return nil
 }
 
+func BranchExists(branchName string) (bool, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	repo, err := git.PlainOpen(wd)
+	if err != nil {
+		return false, fmt.Errorf("not a git repository or unable to open: %w", err)
+	}
+
+	branchRef := plumbing.NewBranchReferenceName(branchName)
+	_, err = repo.Reference(branchRef, true)
+	if err != nil {
+		return false, nil // Branch doesn't exist
+	}
+
+	return true, nil
+}
+
 func SwitchBranch(branchName string) error {
 	wd, err := os.Getwd()
 	if err != nil {

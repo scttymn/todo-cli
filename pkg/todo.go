@@ -23,6 +23,12 @@ func GetTodoFilePath(branchName string) string {
 	return filepath.Join(".todo", branchName+".md")
 }
 
+func TodoFileExists(featureName string) bool {
+	filePath := GetTodoFilePath(featureName)
+	_, err := os.Stat(filePath)
+	return err == nil
+}
+
 func EnsureTodoDirectory() error {
 	return os.MkdirAll(".todo", 0755)
 }
@@ -188,5 +194,57 @@ func DisplayTodoList(branchName string) error {
 	}
 
 	fmt.Printf("\nProgress: %d/%d completed\n", completed, len(todoList.Items))
+	return nil
+}
+
+func ListAllFeatures() error {
+	if err := EnsureTodoDirectory(); err != nil {
+		return fmt.Errorf("failed to ensure .todo directory: %w", err)
+	}
+
+	files, err := os.ReadDir(".todo")
+	if err != nil {
+		return fmt.Errorf("failed to read .todo directory: %w", err)
+	}
+
+	var features []string
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
+			featureName := strings.TrimSuffix(file.Name(), ".md")
+			features = append(features, featureName)
+		}
+	}
+
+	if len(features) == 0 {
+		fmt.Println("No features found")
+		return nil
+	}
+
+	fmt.Println("Features:")
+	fmt.Println()
+
+	for _, feature := range features {
+		todoList, err := ParseTodoFile(feature)
+		if err != nil {
+			fmt.Printf("  %s - Error reading file: %v\n", feature, err)
+			continue
+		}
+
+		completed := 0
+		for _, item := range todoList.Items {
+			if item.Completed {
+				completed++
+			}
+		}
+
+		total := len(todoList.Items)
+		if total == 0 {
+			fmt.Printf("  %s - No todos\n", feature)
+		} else {
+			percentage := (completed * 100) / total
+			fmt.Printf("  %s - %d/%d completed (%d%%)\n", feature, completed, total, percentage)
+		}
+	}
+
 	return nil
 }

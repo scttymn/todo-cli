@@ -11,10 +11,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func requiresGitSetup() bool {
+	if !pkg.IsGitRepository() || !pkg.HasCommits() {
+		fmt.Println("This directory is not set up for todo management.")
+		fmt.Println("Run 'todo init' to initialize a todo-enabled git repository.")
+		return true
+	}
+	return false
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "todo",
 	Short: "A CLI tool for managing branch-specific todo lists",
 	Long:  `todo is a CLI tool that manages todo lists tied to git branches, helping you track tasks for each feature or project.`,
+}
+
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Initialize a new todo-enabled git repository",
+	Long:  `Initialize the current directory as a git repository with proper setup for todo management.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		err := pkg.InitTodoRepository()
+		if err != nil {
+			fmt.Printf("Failed to initialize todo repository: %v\n", err)
+			return
+		}
+		
+		fmt.Println("✅ Todo repository initialized successfully!")
+		fmt.Println("You can now create todo lists with: todo list <name>")
+	},
 }
 
 
@@ -23,6 +48,10 @@ var addCmd = &cobra.Command{
 	Short: "Add a todo item to the current branch's list",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
 		todoItem := args[0]
 		
 		featureName, err := pkg.GetFeatureName()
@@ -46,6 +75,10 @@ var checkCmd = &cobra.Command{
 	Short: "Mark a todo item as completed",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
 		itemNumber := args[0]
 		
 		featureName, err := pkg.GetFeatureName()
@@ -75,6 +108,10 @@ var uncheckCmd = &cobra.Command{
 	Short: "Mark a todo item as not completed",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
 		itemNumber := args[0]
 		
 		featureName, err := pkg.GetFeatureName()
@@ -104,6 +141,10 @@ var progressCmd = &cobra.Command{
 	Short: "Show progress for current list, specific list, or all lists",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
 		showAll, _ := cmd.Flags().GetBool("all")
 		
 		if showAll {
@@ -153,6 +194,10 @@ var listCmd = &cobra.Command{
 	Short: "Show all lists or switch to/create/delete a specific list",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
 		deleteFlag, _ := cmd.Flags().GetBool("delete")
 		
 		if deleteFlag {
@@ -319,6 +364,7 @@ func init() {
 	// Add the --delete flag to list command
 	listCmd.Flags().BoolP("delete", "d", false, "Delete the specified list")
 	
+	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)

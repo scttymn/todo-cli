@@ -204,13 +204,13 @@ var progressCmd = &cobra.Command{
 	},
 }
 
-var featuresCmd = &cobra.Command{
-	Use:   "features",
-	Short: "Show progress across all features (alias for 'progress --all')",
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "Show progress across all todo lists (alias for 'progress --all')",
 	Run: func(cmd *cobra.Command, args []string) {
 		err := pkg.ListAllFeatures()
 		if err != nil {
-			fmt.Printf("Error showing features: %v\n", err)
+			fmt.Printf("Error showing lists: %v\n", err)
 			return
 		}
 	},
@@ -233,7 +233,7 @@ func init() {
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)
 	rootCmd.AddCommand(progressCmd)
-	rootCmd.AddCommand(featuresCmd)
+	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

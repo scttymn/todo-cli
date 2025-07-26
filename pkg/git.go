@@ -85,6 +85,24 @@ func BranchExists(branchName string) (bool, error) {
 	return true, nil
 }
 
+func HasUncommittedChanges() (bool, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Use git status --porcelain to check for changes
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = wd
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to check git status: %w", err)
+	}
+
+	// If output is not empty, there are uncommitted changes
+	return len(strings.TrimSpace(string(output))) > 0, nil
+}
+
 func SwitchBranch(branchName string) error {
 	wd, err := os.Getwd()
 	if err != nil {

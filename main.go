@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/scttymn/todo-cli/pkg"
 	"github.com/spf13/cobra"
@@ -22,6 +24,32 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		featureName := args[0]
 		branchName := "feature/" + featureName
+		
+		// Check for uncommitted changes before switching
+		hasChanges, err := pkg.HasUncommittedChanges()
+		if err != nil {
+			fmt.Printf("Error checking for uncommitted changes: %v\n", err)
+			return
+		}
+		
+		if hasChanges {
+			fmt.Println("⚠️  Warning: You have uncommitted changes that will be brought to the new branch.")
+			fmt.Println("Consider committing or stashing your changes first.")
+			fmt.Print("Do you want to continue? (y/N): ")
+			
+			reader := bufio.NewReader(os.Stdin)
+			response, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Printf("Error reading input: %v\n", err)
+				return
+			}
+			
+			response = strings.TrimSpace(strings.ToLower(response))
+			if response != "y" && response != "yes" {
+				fmt.Println("Operation cancelled.")
+				return
+			}
+		}
 		
 		// Check if branch exists
 		branchExists, err := pkg.BranchExists(branchName)

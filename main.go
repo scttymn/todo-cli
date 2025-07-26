@@ -15,9 +15,9 @@ var rootCmd = &cobra.Command{
 	Long:  `todo is a CLI tool that manages todo lists tied to git branches, helping you track tasks for each feature or project.`,
 }
 
-var featureCmd = &cobra.Command{
-	Use:   "feature [feature-name]",
-	Short: "Create or switch to a feature branch and manage its todos",
+var startCmd = &cobra.Command{
+	Use:   "start [feature-name]",
+	Short: "Start working on a feature (create/switch to branch and manage todos)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		featureName := args[0]
@@ -188,7 +188,7 @@ func init() {
 	// Add the --all flag to progress command
 	progressCmd.Flags().BoolP("all", "a", false, "Show progress for all features")
 	
-	rootCmd.AddCommand(featureCmd)
+	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)

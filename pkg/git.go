@@ -18,7 +18,7 @@ func GetCurrentBranch() (string, error) {
 
 	repo, err := git.PlainOpen(wd)
 	if err != nil {
-		return "", fmt.Errorf("not a git repository or unable to open: %w", err)
+		return "", fmt.Errorf("this directory is not a git repository. Please run 'git init' or navigate to a git repository")
 	}
 
 	head, err := repo.Head()
@@ -59,6 +59,9 @@ func CreateBranch(branchName string) error {
 	cmd.Dir = wd
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(output), "not a git repository") {
+			return fmt.Errorf("this directory is not a git repository. Please run 'git init' first")
+		}
 		return fmt.Errorf("failed to create branch %s: %s", branchName, string(output))
 	}
 
@@ -73,7 +76,7 @@ func BranchExists(branchName string) (bool, error) {
 
 	repo, err := git.PlainOpen(wd)
 	if err != nil {
-		return false, fmt.Errorf("not a git repository or unable to open: %w", err)
+		return false, fmt.Errorf("this directory is not a git repository. Please run 'git init' or navigate to a git repository")
 	}
 
 	branchRef := plumbing.NewBranchReferenceName(branchName)
@@ -96,7 +99,7 @@ func HasUncommittedChanges() (bool, error) {
 	cmd.Dir = wd
 	output, err := cmd.Output()
 	if err != nil {
-		return false, fmt.Errorf("failed to check git status: %w", err)
+		return false, fmt.Errorf("unable to check git status. Make sure you're in a git repository")
 	}
 
 	// If output is not empty, there are uncommitted changes
@@ -111,7 +114,7 @@ func SwitchBranch(branchName string) error {
 
 	repo, err := git.PlainOpen(wd)
 	if err != nil {
-		return fmt.Errorf("not a git repository or unable to open: %w", err)
+		return fmt.Errorf("this directory is not a git repository. Please run 'git init' or navigate to a git repository")
 	}
 
 	// Check if branch exists
@@ -126,6 +129,9 @@ func SwitchBranch(branchName string) error {
 	cmd.Dir = wd
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(output), "not a git repository") {
+			return fmt.Errorf("this directory is not a git repository. Please run 'git init' first")
+		}
 		return fmt.Errorf("failed to switch to branch %s: %s", branchName, string(output))
 	}
 
@@ -143,6 +149,9 @@ func DeleteBranch(branchName string) error {
 	cmd.Dir = wd
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		if strings.Contains(string(output), "not a git repository") {
+			return fmt.Errorf("this directory is not a git repository. Please run 'git init' first")
+		}
 		return fmt.Errorf("failed to delete branch %s: %s", branchName, string(output))
 	}
 

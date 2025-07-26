@@ -3,6 +3,7 @@
 
 # Go build artifacts
 todo-cli
+todo
 *.exe
 *.exe~
 *.dll

@@ -148,33 +148,30 @@ var uncheckCmd = &cobra.Command{
 	},
 }
 
-var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show current todo progress for the active branch",
+var progressCmd = &cobra.Command{
+	Use:   "progress",
+	Short: "Show progress for current feature or all features",
 	Run: func(cmd *cobra.Command, args []string) {
-		featureName, err := pkg.GetFeatureName()
-		if err != nil {
-			fmt.Printf("Error getting feature name: %v\n", err)
-			return
-		}
+		showAll, _ := cmd.Flags().GetBool("all")
 		
-		err = pkg.DisplayTodoList(featureName)
-		if err != nil {
-			fmt.Printf("Error displaying todo list: %v\n", err)
-			return
-		}
-	},
-}
-
-
-var featuresCmd = &cobra.Command{
-	Use:   "features",
-	Short: "List all features with their progress",
-	Run: func(cmd *cobra.Command, args []string) {
-		err := pkg.ListAllFeatures()
-		if err != nil {
-			fmt.Printf("Error listing features: %v\n", err)
-			return
+		if showAll {
+			err := pkg.ListAllFeatures()
+			if err != nil {
+				fmt.Printf("Error showing progress: %v\n", err)
+				return
+			}
+		} else {
+			featureName, err := pkg.GetFeatureName()
+			if err != nil {
+				fmt.Printf("Error getting feature name: %v\n", err)
+				return
+			}
+			
+			err = pkg.DisplayTodoList(featureName)
+			if err != nil {
+				fmt.Printf("Error displaying todo list: %v\n", err)
+				return
+			}
 		}
 	},
 }
@@ -188,12 +185,14 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
+	// Add the --all flag to progress command
+	progressCmd.Flags().BoolP("all", "a", false, "Show progress for all features")
+	
 	rootCmd.AddCommand(featureCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)
-	rootCmd.AddCommand(statusCmd)
-	rootCmd.AddCommand(featuresCmd)
+	rootCmd.AddCommand(progressCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

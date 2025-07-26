@@ -17,83 +17,6 @@ var rootCmd = &cobra.Command{
 	Long:  `todo is a CLI tool that manages todo lists tied to git branches, helping you track tasks for each feature or project.`,
 }
 
-var startCmd = &cobra.Command{
-	Use:   "start [feature-name]",
-	Short: "Start working on a feature (create/switch to branch and manage todos)",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		featureName := args[0]
-		branchName := "feature/" + featureName
-		
-		// Check for uncommitted changes before switching
-		hasChanges, err := pkg.HasUncommittedChanges()
-		if err != nil {
-			fmt.Printf("Error checking for uncommitted changes: %v\n", err)
-			return
-		}
-		
-		if hasChanges {
-			fmt.Println("⚠️  Warning: You have uncommitted changes that will be brought to the new branch.")
-			fmt.Println("Consider committing or stashing your changes first.")
-			fmt.Print("Do you want to continue? (y/N): ")
-			
-			reader := bufio.NewReader(os.Stdin)
-			response, err := reader.ReadString('\n')
-			if err != nil {
-				fmt.Printf("Error reading input: %v\n", err)
-				return
-			}
-			
-			response = strings.TrimSpace(strings.ToLower(response))
-			if response != "y" && response != "yes" {
-				fmt.Println("Operation cancelled.")
-				return
-			}
-		}
-		
-		// Check if branch exists
-		branchExists, err := pkg.BranchExists(branchName)
-		if err != nil {
-			fmt.Printf("Error checking branch existence: %v\n", err)
-			return
-		}
-		
-		if branchExists {
-			// Branch exists, just switch to it
-			err = pkg.SwitchBranch(branchName)
-			if err != nil {
-				fmt.Printf("Error switching to branch %s: %v\n", branchName, err)
-				return
-			}
-			fmt.Printf("Switched to existing branch '%s'\n", branchName)
-		} else {
-			// Branch doesn't exist, create it
-			err = pkg.CreateBranch(branchName)
-			if err != nil {
-				fmt.Printf("Error creating branch %s: %v\n", branchName, err)
-				return
-			}
-			fmt.Printf("Created and switched to branch '%s'\n", branchName)
-		}
-		
-		// Ensure todo file exists
-		if !pkg.TodoFileExists(featureName) {
-			err = pkg.CreateTodoFile(featureName)
-			if err != nil {
-				fmt.Printf("Error creating todo file: %v\n", err)
-				return
-			}
-			fmt.Printf("Initialized todo file: .todo/%s.md\n", featureName)
-		}
-		
-		// Display current todos
-		err = pkg.DisplayTodoList(featureName)
-		if err != nil {
-			fmt.Printf("Error displaying todo list: %v\n", err)
-			return
-		}
-	},
-}
 
 var addCmd = &cobra.Command{
 	Use:   "add [todo-item]",
@@ -205,13 +128,89 @@ var progressCmd = &cobra.Command{
 }
 
 var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Show progress across all todo lists (alias for 'progress --all')",
+	Use:   "list [list-name]",
+	Short: "Show all lists or switch to/create a specific list",
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := pkg.ListAllFeatures()
-		if err != nil {
-			fmt.Printf("Error showing lists: %v\n", err)
-			return
+		if len(args) == 0 {
+			// Show all lists
+			err := pkg.ListAllFeatures()
+			if err != nil {
+				fmt.Printf("Error showing lists: %v\n", err)
+				return
+			}
+		} else {
+			// Switch to or create specific list
+			listName := args[0]
+			branchName := "feature/" + listName
+			
+			// Check for uncommitted changes before switching
+			hasChanges, err := pkg.HasUncommittedChanges()
+			if err != nil {
+				fmt.Printf("Error checking for uncommitted changes: %v\n", err)
+				return
+			}
+			
+			if hasChanges {
+				fmt.Println("⚠️  Warning: You have uncommitted changes that will be brought to the new branch.")
+				fmt.Println("Consider committing or stashing your changes first.")
+				fmt.Print("Do you want to continue? (y/N): ")
+				
+				reader := bufio.NewReader(os.Stdin)
+				response, err := reader.ReadString('\n')
+				if err != nil {
+					fmt.Printf("Error reading input: %v\n", err)
+					return
+				}
+				
+				response = strings.TrimSpace(strings.ToLower(response))
+				if response != "y" && response != "yes" {
+					fmt.Println("Operation cancelled.")
+					return
+				}
+			}
+			
+			// Check if branch exists
+			branchExists, err := pkg.BranchExists(branchName)
+			if err != nil {
+				fmt.Printf("Error checking branch existence: %v\n", err)
+				return
+			}
+			
+			if branchExists {
+				// Branch exists, just switch to it
+				err = pkg.SwitchBranch(branchName)
+				if err != nil {
+					fmt.Printf("Error switching to branch %s: %v\n", branchName, err)
+					return
+				}
+				fmt.Printf("Switched to existing list '%s'\n", listName)
+			} else {
+				// Branch doesn't exist, create it
+				err = pkg.CreateBranch(branchName)
+				if err != nil {
+					fmt.Printf("Error creating branch %s: %v\n", branchName, err)
+					return
+				}
+				fmt.Printf("Created and switched to list '%s'\n", listName)
+			}
+			
+			// Ensure todo file exists
+			if !pkg.TodoFileExists(listName) {
+				err = pkg.CreateTodoFile(listName)
+				if err != nil {
+					fmt.Printf("Error creating todo file: %v\n", err)
+					return
+				}
+				fmt.Printf("Initialized todo file: .todo/%s.md\n", listName)
+			}
+			
+			// Display current todos
+			err = pkg.DisplayTodoList(listName)
+			if err != nil {
+				fmt.Printf("Error displaying todo list: %v\n", err)
+				return
+			}
 		}
 	},
 }
@@ -228,7 +227,6 @@ func init() {
 	// Add the --all flag to progress command
 	progressCmd.Flags().BoolP("all", "a", false, "Show progress for all features")
 	
-	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)

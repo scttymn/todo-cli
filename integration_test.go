@@ -86,19 +86,19 @@ func runCLIWithInput(t *testing.T, binaryPath string, input string, args ...stri
 	return string(stdout), "", 0
 }
 
-func TestStartCommand(t *testing.T) {
+func TestListCommand(t *testing.T) {
 	_, binaryPath := setupIntegrationTest(t)
 	
-	// Test creating a new feature
-	stdout, stderr, exitCode := runCLIWithInput(t, binaryPath, "y\n", "start", "authentication")
+	// Test creating a new list
+	stdout, stderr, exitCode := runCLIWithInput(t, binaryPath, "y\n", "list", "authentication")
 	
 	if exitCode != 0 {
-		t.Fatalf("start command failed with exit code %d, stderr: %s", exitCode, stderr)
+		t.Fatalf("list command failed with exit code %d, stderr: %s", exitCode, stderr)
 	}
 	
-	// Check that branch was created and switched
-	if !strings.Contains(stdout, "Created and switched to branch 'feature/authentication'") {
-		t.Errorf("Expected branch creation message, got: %s", stdout)
+	// Check that list was created and switched
+	if !strings.Contains(stdout, "Created and switched to list 'authentication'") {
+		t.Errorf("Expected list creation message, got: %s", stdout)
 	}
 	
 	// Check that todo file was created
@@ -112,23 +112,34 @@ func TestStartCommand(t *testing.T) {
 		t.Error("Todo file was not created")
 	}
 	
-	// Test switching to existing feature
-	stdout, stderr, exitCode = runCLIWithInput(t, binaryPath, "y\n", "start", "authentication")
+	// Test switching to existing list
+	stdout, stderr, exitCode = runCLIWithInput(t, binaryPath, "y\n", "list", "authentication")
 	
 	if exitCode != 0 {
-		t.Fatalf("start command failed for existing branch with exit code %d, stderr: %s", exitCode, stderr)
+		t.Fatalf("list command failed for existing list with exit code %d, stderr: %s", exitCode, stderr)
 	}
 	
-	if !strings.Contains(stdout, "Switched to existing branch 'feature/authentication'") {
-		t.Errorf("Expected branch switch message, got: %s", stdout)
+	if !strings.Contains(stdout, "Switched to existing list 'authentication'") {
+		t.Errorf("Expected list switch message, got: %s", stdout)
+	}
+	
+	// Test showing all lists
+	stdout, stderr, exitCode = runCLI(t, binaryPath, "list")
+	
+	if exitCode != 0 {
+		t.Fatalf("list command failed to show all lists with exit code %d, stderr: %s", exitCode, stderr)
+	}
+	
+	if !strings.Contains(stdout, "Lists:") {
+		t.Errorf("Expected lists header, got: %s", stdout)
 	}
 }
 
 func TestAddCheckUncheckWorkflow(t *testing.T) {
 	_, binaryPath := setupIntegrationTest(t)
 	
-	// Start a feature
-	runCLIWithInput(t, binaryPath, "y\n", "start", "testing")
+	// Create a list
+	runCLIWithInput(t, binaryPath, "y\n", "list", "testing")
 	
 	// Add some todo items
 	stdout, stderr, exitCode := runCLI(t, binaryPath, "add", "First todo item")
@@ -193,12 +204,12 @@ func TestAddCheckUncheckWorkflow(t *testing.T) {
 func TestProgressCommandWithAll(t *testing.T) {
 	_, binaryPath := setupIntegrationTest(t)
 	
-	// Create multiple features with different progress
-	runCLIWithInput(t, binaryPath, "y\n", "start", "feature1")
+	// Create multiple lists with different progress
+	runCLIWithInput(t, binaryPath, "y\n", "list", "feature1")
 	runCLI(t, binaryPath, "add", "Feature 1 todo")
 	runCLI(t, binaryPath, "check", "1")
 	
-	runCLIWithInput(t, binaryPath, "y\n", "start", "feature2")
+	runCLIWithInput(t, binaryPath, "y\n", "list", "feature2")
 	runCLI(t, binaryPath, "add", "Feature 2 todo 1")
 	runCLI(t, binaryPath, "add", "Feature 2 todo 2")
 	// Leave both unchecked
@@ -224,8 +235,8 @@ func TestProgressCommandWithAll(t *testing.T) {
 		t.Fatalf("progress -a command failed with exit code %d, stderr: %s", exitCode, stderr)
 	}
 	
-	if !strings.Contains(stdout, "Features:") {
-		t.Errorf("Expected features list, got: %s", stdout)
+	if !strings.Contains(stdout, "Lists:") {
+		t.Errorf("Expected lists header, got: %s", stdout)
 	}
 }
 
@@ -251,7 +262,7 @@ func TestHelpCommand(t *testing.T) {
 	}
 	
 	// Check for key commands
-	expectedCommands := []string{"start", "add", "check", "uncheck", "progress", "version"}
+	expectedCommands := []string{"list", "add", "check", "uncheck", "progress", "version"}
 	for _, cmd := range expectedCommands {
 		if !strings.Contains(stdout, cmd) {
 			t.Errorf("Expected to find command %s in help output, got: %s", cmd, stdout)

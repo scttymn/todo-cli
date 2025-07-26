@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v0.1.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Build binaries
+      run: |
+        mkdir -p build
+        
+        # Windows
+        GOOS=windows GOARCH=amd64 go build -o build/todo-windows-amd64.exe
+        
+        # Linux
+        GOOS=linux GOARCH=amd64 go build -o build/todo-linux-amd64
+        
+        # macOS Intel
+        GOOS=darwin GOARCH=amd64 go build -o build/todo-darwin-amd64
+        
+        # macOS Apple Silicon
+        GOOS=darwin GOARCH=arm64 go build -o build/todo-darwin-arm64
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/todo-windows-amd64.exe
+          build/todo-linux-amd64
+          build/todo-darwin-amd64
+          build/todo-darwin-arm64
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

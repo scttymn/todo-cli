@@ -220,7 +220,7 @@ func ListAllFeatures() error {
 		return nil
 	}
 
-	fmt.Println("Features:")
+	fmt.Println("Lists:")
 	fmt.Println()
 
 	for _, feature := range features {

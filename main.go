@@ -204,6 +204,18 @@ var progressCmd = &cobra.Command{
 	},
 }
 
+var featuresCmd = &cobra.Command{
+	Use:   "features",
+	Short: "Show progress across all features (alias for 'progress --all')",
+	Run: func(cmd *cobra.Command, args []string) {
+		err := pkg.ListAllFeatures()
+		if err != nil {
+			fmt.Printf("Error showing features: %v\n", err)
+			return
+		}
+	},
+}
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of todo CLI",
@@ -221,6 +233,7 @@ func init() {
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(uncheckCmd)
 	rootCmd.AddCommand(progressCmd)
+	rootCmd.AddCommand(featuresCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

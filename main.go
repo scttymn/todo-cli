@@ -349,6 +349,23 @@ var listCmd = &cobra.Command{
 	},
 }
 
+var historyCmd = &cobra.Command{
+	Use:   "history",
+	Short: "Show history of completed todos across all lists",
+	Long:  `Display a chronological history of all completed todos with timestamps, organized by date.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
+		err := pkg.ShowHistory()
+		if err != nil {
+			fmt.Printf("Failed to show history: %v\n", err)
+			return
+		}
+	},
+}
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of todo CLI",
@@ -370,6 +387,7 @@ func init() {
 	rootCmd.AddCommand(uncheckCmd)
 	rootCmd.AddCommand(progressCmd)
 	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(historyCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

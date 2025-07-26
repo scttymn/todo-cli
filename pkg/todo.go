@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type TodoItem struct {
-	ID        int
-	Text      string
-	Completed bool
+	ID            int
+	Text          string
+	Completed     bool
+	CompletedTime *time.Time
 }
 
 type TodoList struct {
@@ -75,7 +77,8 @@ func ParseTodoFile(branchName string) (*TodoList, error) {
 	scanner := bufio.NewScanner(file)
 	itemID := 1
 	
-	checkboxRegex := regexp.MustCompile(`^- \[([ x])\] (.+)$`)
+	// Updated regex to capture optional timestamp: - [x] task text (completed: 2024-01-15 10:30)
+	checkboxRegex := regexp.MustCompile(`^- \[([ x])\] (.+?)(?:\s+\(completed:\s+(.+?)\))?$`)
 	
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -83,11 +86,20 @@ func ParseTodoFile(branchName string) (*TodoList, error) {
 		if match := checkboxRegex.FindStringSubmatch(line); match != nil {
 			completed := match[1] == "x"
 			text := match[2]
+			var completedTime *time.Time
+			
+			// Parse timestamp if present
+			if completed && len(match) > 3 && match[3] != "" {
+				if parsedTime, err := time.Parse("2006-01-02 15:04", match[3]); err == nil {
+					completedTime = &parsedTime
+				}
+			}
 			
 			items = append(items, TodoItem{
-				ID:        itemID,
-				Text:      text,
-				Completed: completed,
+				ID:            itemID,
+				Text:          text,
+				Completed:     completed,
+				CompletedTime: completedTime,
 			})
 			itemID++
 		}
@@ -119,8 +131,14 @@ func WriteTodoFile(branchName string, todoList *TodoList) error {
 		checkbox := " "
 		if item.Completed {
 			checkbox = "x"
+			if item.CompletedTime != nil {
+				fmt.Fprintf(file, "- [%s] %s (completed: %s)\n", checkbox, item.Text, item.CompletedTime.Format("2006-01-02 15:04"))
+			} else {
+				fmt.Fprintf(file, "- [%s] %s\n", checkbox, item.Text)
+			}
+		} else {
+			fmt.Fprintf(file, "- [%s] %s\n", checkbox, item.Text)
 		}
-		fmt.Fprintf(file, "- [%s] %s\n", checkbox, item.Text)
 	}
 
 	return nil
@@ -134,9 +152,10 @@ func AddTodoItem(branchName, text string) error {
 
 	newID := len(todoList.Items) + 1
 	todoList.Items = append(todoList.Items, TodoItem{
-		ID:        newID,
-		Text:      text,
-		Completed: false,
+		ID:            newID,
+		Text:          text,
+		Completed:     false,
+		CompletedTime: nil,
 	})
 
 	return WriteTodoFile(branchName, todoList)
@@ -152,7 +171,9 @@ func CheckTodoItem(branchName string, itemID int) error {
 		return fmt.Errorf("invalid item ID: %d", itemID)
 	}
 
+	now := time.Now()
 	todoList.Items[itemID-1].Completed = true
+	todoList.Items[itemID-1].CompletedTime = &now
 	return WriteTodoFile(branchName, todoList)
 }
 
@@ -167,6 +188,7 @@ func UncheckTodoItem(branchName string, itemID int) error {
 	}
 
 	todoList.Items[itemID-1].Completed = false
+	todoList.Items[itemID-1].CompletedTime = nil
 	return WriteTodoFile(branchName, todoList)
 }
 
@@ -244,6 +266,81 @@ func ListAllFeatures() error {
 			percentage := (completed * 100) / total
 			fmt.Printf("  %s - %d/%d completed (%d%%)\n", feature, completed, total, percentage)
 		}
+	}
+
+	return nil
+}
+
+func ShowHistory() error {
+	if err := EnsureTodoDirectory(); err != nil {
+		return fmt.Errorf("failed to ensure .todo directory: %w", err)
+	}
+
+	files, err := os.ReadDir(".todo")
+	if err != nil {
+		return fmt.Errorf("failed to read .todo directory: %w", err)
+	}
+
+	type CompletedItem struct {
+		Text      string
+		List      string
+		Completed time.Time
+	}
+
+	var completedItems []CompletedItem
+
+	// Collect all completed items from all lists
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
+			listName := strings.TrimSuffix(file.Name(), ".md")
+			
+			todoList, err := ParseTodoFile(listName)
+			if err != nil {
+				continue // Skip files we can't parse
+			}
+
+			for _, item := range todoList.Items {
+				if item.Completed && item.CompletedTime != nil {
+					completedItems = append(completedItems, CompletedItem{
+						Text:      item.Text,
+						List:      listName,
+						Completed: *item.CompletedTime,
+					})
+				}
+			}
+		}
+	}
+
+	if len(completedItems) == 0 {
+		fmt.Println("No completed todos found.")
+		return nil
+	}
+
+	// Sort by completion time (newest first)
+	for i := 0; i < len(completedItems); i++ {
+		for j := i + 1; j < len(completedItems); j++ {
+			if completedItems[i].Completed.Before(completedItems[j].Completed) {
+				completedItems[i], completedItems[j] = completedItems[j], completedItems[i]
+			}
+		}
+	}
+
+	fmt.Println("Completed Todo History:")
+	fmt.Println()
+
+	currentDate := ""
+	for _, item := range completedItems {
+		itemDate := item.Completed.Format("2006-01-02")
+		if itemDate != currentDate {
+			if currentDate != "" {
+				fmt.Println()
+			}
+			fmt.Printf("📅 %s\n", item.Completed.Format("Monday, January 2, 2006"))
+			currentDate = itemDate
+		}
+		
+		timeStr := item.Completed.Format("15:04")
+		fmt.Printf("  ✅ %s [%s] (%s)\n", item.Text, item.List, timeStr)
 	}
 
 	return nil

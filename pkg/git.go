@@ -131,3 +131,20 @@ func SwitchBranch(branchName string) error {
 
 	return nil
 }
+
+func DeleteBranch(branchName string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Use git command to delete branch
+	cmd := exec.Command("git", "branch", "-D", branchName)
+	cmd.Dir = wd
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to delete branch %s: %s", branchName, string(output))
+	}
+
+	return nil
+}

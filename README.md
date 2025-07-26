@@ -8,6 +8,28 @@ Todo CLI creates and manages markdown-based todo lists that are tied to your Git
 
 ## Installation
 
+### Download Pre-built Binaries (Recommended)
+
+Download the latest release for your platform from the [releases page](https://github.com/scttymn/todo-cli/releases).
+
+- **Windows**: `todo-windows-amd64.exe`
+- **Linux**: `todo-linux-amd64`
+- **macOS Intel**: `todo-darwin-amd64`
+- **macOS Apple Silicon**: `todo-darwin-arm64`
+
+After downloading, make the binary executable and move to your PATH:
+
+```bash
+# Linux/macOS
+chmod +x todo-*
+sudo mv todo-* /usr/local/bin/todo
+
+# Or add to your PATH directory
+mv todo-* ~/bin/todo
+```
+
+### Build from Source
+
 ```bash
 go build -o todo
 # Move to your PATH if desired

@@ -100,18 +100,39 @@ var uncheckCmd = &cobra.Command{
 }
 
 var progressCmd = &cobra.Command{
-	Use:   "progress",
-	Short: "Show progress for current feature or all features",
+	Use:   "progress [list-name]",
+	Short: "Show progress for current list, specific list, or all lists",
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		showAll, _ := cmd.Flags().GetBool("all")
 		
 		if showAll {
+			if len(args) > 0 {
+				fmt.Println("Error: Cannot use --all flag with list name")
+				return
+			}
 			err := pkg.ListAllFeatures()
 			if err != nil {
 				fmt.Printf("Error showing progress: %v\n", err)
 				return
 			}
+		} else if len(args) == 1 {
+			// Show progress for specific list
+			listName := args[0]
+			
+			// Check if the list exists by checking if todo file exists
+			if !pkg.TodoFileExists(listName) {
+				fmt.Printf("List '%s' does not exist\n", listName)
+				return
+			}
+			
+			err := pkg.DisplayTodoList(listName)
+			if err != nil {
+				fmt.Printf("Error displaying todo list: %v\n", err)
+				return
+			}
 		} else {
+			// Show progress for current list
 			featureName, err := pkg.GetFeatureName()
 			if err != nil {
 				fmt.Printf("Error getting feature name: %v\n", err)

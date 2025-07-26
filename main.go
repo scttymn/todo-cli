@@ -366,6 +366,126 @@ var historyCmd = &cobra.Command{
 	},
 }
 
+var infoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "Output comprehensive information about todo CLI for LLM assistants",
+	Long:  `Outputs detailed information about the todo CLI structure, commands, and usage patterns designed for LLM assistants to understand how to use the tool effectively.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Print(`# Todo CLI - LLM Assistant Guide
+
+## Overview
+This is a Git-integrated CLI tool for managing branch-specific todo lists. Each todo list is tied to a Git branch and stored as a markdown file.
+
+## Core Concepts
+- **Lists**: Each todo list corresponds to a Git branch (pattern: feature/<list-name>)
+- **Storage**: Todo items stored in .todo/<list-name>.md files
+- **Branch Integration**: Switching lists switches Git branches
+- **Safety**: Warns about uncommitted changes before switching
+
+## Available Commands
+
+### 1. todo init
+Initialize a new todo-enabled git repository.
+- Use when: Directory is not a git repo or lacks proper setup
+- Creates: Git repository with todo infrastructure
+
+### 2. todo list [list-name]
+Manage todo lists (create, switch, view, delete).
+- 'todo list' - Show all lists with progress percentages
+- 'todo list <name>' - Switch to or create list (creates feature/<name> branch)
+- 'todo list --delete <name>' - Delete list and branch (requires confirmation)
+
+### 3. todo add <item>
+Add todo item to current list.
+- Takes: Single quoted string argument
+- Example: todo add "Implement user authentication"
+
+### 4. todo check <number>
+Mark todo item as completed.
+- Takes: Item number (1-based indexing)
+- Example: todo check 1
+
+### 5. todo uncheck <number>
+Mark todo item as incomplete.
+- Takes: Item number (1-based indexing)
+- Example: todo uncheck 2
+
+### 6. todo progress [list-name]
+Show progress for lists.
+- 'todo progress' - Current list progress
+- 'todo progress <name>' - Specific list progress
+- 'todo progress --all' - All lists progress
+
+### 7. todo history
+Show chronological history of completed todos across all lists.
+
+### 8. todo version
+Show CLI version.
+
+## File Structure
+` + "```" + `
+project/
+├── .todo/
+│   ├── feature-name.md
+│   └── another-list.md
+└── [project files]
+` + "```" + `
+
+## Todo File Format
+Standard markdown with checkboxes:
+` + "```" + `
+# Todo List for feature-name
+
+- [ ] Incomplete task
+- [x] Completed task
+` + "```" + `
+
+## Common Workflows
+
+### Starting New Feature Work
+1. 'todo list feature-name' (creates branch + todo file)
+2. 'todo add "First task"'
+3. 'todo add "Second task"'
+4. Work and mark complete: 'todo check 1'
+
+### Checking Progress
+- 'todo progress' (current list)
+- 'todo list' (all lists overview)
+- 'todo progress --all' (detailed all lists)
+
+### Switching Between Features
+- 'todo list other-feature' (switches branch + shows todos)
+- Warns if uncommitted changes exist
+
+### Cleanup
+- 'todo list --delete completed-feature' (removes branch + file)
+
+## Error Handling
+- Requires git repository (suggests 'todo init' if missing)
+- Warns about uncommitted changes before branch switches
+- Prevents deleting currently active list
+- Validates item numbers for check/uncheck
+
+## Tips for LLM Assistants
+1. Always check current status with 'todo progress' or 'todo list'
+2. Use descriptive names for lists (feature names, not generic terms)
+3. Add todos in logical order (dependencies first)
+4. Check progress regularly to track completion
+5. Clean up completed lists to maintain organization
+6. Remember that switching lists switches Git branches
+
+## Safety Features
+- Git repository validation
+- Uncommitted changes warnings
+- Delete confirmations
+- Branch existence checks
+- Current branch protection
+
+This tool is designed for developers who want to track feature-specific tasks while maintaining clean Git branch organization.
+`)
+	},
+}
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of todo CLI",
@@ -388,6 +508,7 @@ func init() {
 	rootCmd.AddCommand(progressCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(historyCmd)
+	rootCmd.AddCommand(infoCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

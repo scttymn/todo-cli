@@ -486,11 +486,34 @@ This tool is designed for developers who want to track feature-specific tasks wh
 	},
 }
 
+var editCmd = &cobra.Command{
+	Use:   "edit",
+	Short: "Open the current todo list in your configured editor",
+	Long:  `Open the current branch's todo file in your configured editor (set via $EDITOR environment variable).`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if requiresGitSetup() {
+			return
+		}
+		
+		featureName, err := pkg.GetFeatureName()
+		if err != nil {
+			fmt.Printf("Error getting feature name: %v\n", err)
+			return
+		}
+		
+		err = pkg.EditTodoFile(featureName)
+		if err != nil {
+			fmt.Printf("Error opening editor: %v\n", err)
+			return
+		}
+	},
+}
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of todo CLI",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("todo CLI v0.1.0")
+		fmt.Println("todo CLI v0.2.0")
 	},
 }
 
@@ -509,6 +532,7 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(historyCmd)
 	rootCmd.AddCommand(infoCmd)
+	rootCmd.AddCommand(editCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -343,5 +344,37 @@ func ShowHistory() error {
 		fmt.Printf("  ✅ %s [%s] (%s)\n", item.Text, item.List, timeStr)
 	}
 
+	return nil
+}
+
+func EditTodoFile(branchName string) error {
+	// Get the editor from environment variable
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		return fmt.Errorf("EDITOR environment variable is not set. Please set it to your preferred editor (e.g., export EDITOR=nvim)")
+	}
+	
+	// Ensure the todo file exists
+	if !TodoFileExists(branchName) {
+		err := CreateTodoFile(branchName)
+		if err != nil {
+			return fmt.Errorf("failed to create todo file: %w", err)
+		}
+	}
+	
+	// Get the file path
+	filePath := GetTodoFilePath(branchName)
+	
+	// Execute the editor command
+	cmd := exec.Command(editor, filePath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to run editor %s: %w", editor, err)
+	}
+	
 	return nil
 }

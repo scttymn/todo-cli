@@ -11,33 +11,33 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func requiresGitSetup() bool {
-	if !pkg.IsGitRepository() || !pkg.HasCommits() {
-		fmt.Println("This directory is not set up for todo management.")
-		fmt.Println("Run 'todo init' to initialize a todo-enabled git repository.")
+func requiresInit() bool {
+	// Just ensure .todo directory exists
+	if err := pkg.EnsureTodoDirectory(); err != nil {
+		fmt.Printf("Failed to create .todo directory: %v\n", err)
 		return true
 	}
 	return false
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "todo",
-	Short: "A CLI tool for managing branch-specific todo lists",
-	Long:  `todo is a CLI tool that manages todo lists tied to git branches, helping you track tasks for each feature or project.`,
+	Use:   "todo [command] [flags]",
+	Short: "A CLI tool for managing todo lists",
+	Long:  `todo is a CLI tool that manages todo lists in markdown files, helping you track tasks for different projects or features.`,
 }
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a new todo-enabled git repository",
-	Long:  `Initialize the current directory as a git repository with proper setup for todo management.`,
+	Short: "Initialize todo management in the current directory",
+	Long:  `Initialize the current directory for todo management by creating the .todo directory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := pkg.InitTodoRepository()
+		err := pkg.EnsureTodoDirectory()
 		if err != nil {
-			fmt.Printf("Failed to initialize todo repository: %v\n", err)
+			fmt.Printf("Failed to initialize todo directory: %v\n", err)
 			return
 		}
 		
-		fmt.Println("✅ Todo repository initialized successfully!")
+		fmt.Println("✅ Todo management initialized successfully!")
 		fmt.Println("You can now create todo lists with: todo list <name>")
 	},
 }
@@ -45,28 +45,28 @@ var initCmd = &cobra.Command{
 
 var addCmd = &cobra.Command{
 	Use:   "add [todo-item]",
-	Short: "Add a todo item to the current branch's list",
+	Short: "Add a todo item to the current list",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
 		todoItem := args[0]
 		
-		featureName, err := pkg.GetFeatureName()
+		currentList, err := pkg.GetCurrentList()
 		if err != nil {
-			fmt.Printf("Error getting feature name: %v\n", err)
+			fmt.Printf("Error getting current list: %v\n", err)
 			return
 		}
 		
-		err = pkg.AddTodoItem(featureName, todoItem)
+		err = pkg.AddTodoItem(currentList, todoItem)
 		if err != nil {
 			fmt.Printf("Error adding todo item: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Added todo item to feature '%s': %s\n", featureName, todoItem)
+		fmt.Printf("Added todo item to list '%s': %s\n", currentList, todoItem)
 	},
 }
 
@@ -75,15 +75,15 @@ var checkCmd = &cobra.Command{
 	Short: "Mark a todo item as completed",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
 		itemNumber := args[0]
 		
-		featureName, err := pkg.GetFeatureName()
+		currentList, err := pkg.GetCurrentList()
 		if err != nil {
-			fmt.Printf("Error getting feature name: %v\n", err)
+			fmt.Printf("Error getting current list: %v\n", err)
 			return
 		}
 		
@@ -93,13 +93,13 @@ var checkCmd = &cobra.Command{
 			return
 		}
 		
-		err = pkg.CheckTodoItem(featureName, itemID)
+		err = pkg.CheckTodoItem(currentList, itemID)
 		if err != nil {
 			fmt.Printf("Error checking todo item: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Marked item %d as completed in feature '%s'\n", itemID, featureName)
+		fmt.Printf("Marked item %d as completed in list '%s'\n", itemID, currentList)
 	},
 }
 
@@ -108,15 +108,15 @@ var uncheckCmd = &cobra.Command{
 	Short: "Mark a todo item as not completed",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
 		itemNumber := args[0]
 		
-		featureName, err := pkg.GetFeatureName()
+		currentList, err := pkg.GetCurrentList()
 		if err != nil {
-			fmt.Printf("Error getting feature name: %v\n", err)
+			fmt.Printf("Error getting current list: %v\n", err)
 			return
 		}
 		
@@ -126,22 +126,23 @@ var uncheckCmd = &cobra.Command{
 			return
 		}
 		
-		err = pkg.UncheckTodoItem(featureName, itemID)
+		err = pkg.UncheckTodoItem(currentList, itemID)
 		if err != nil {
 			fmt.Printf("Error unchecking todo item: %v\n", err)
 			return
 		}
 		
-		fmt.Printf("Marked item %d as not completed in feature '%s'\n", itemID, featureName)
+		fmt.Printf("Marked item %d as not completed in list '%s'\n", itemID, currentList)
 	},
 }
 
 var progressCmd = &cobra.Command{
 	Use:   "progress [list-name]",
-	Short: "Show progress for current list, specific list, or all lists",
+	Short: "Show progress for current list, specific list, or all lists\n                Available flags: --all",
+	Long:  `Show todo progress:\n\n  todo progress             Current list progress\n  todo progress <name>      Specific list progress\n  todo progress --all       All lists progress`,
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
@@ -174,13 +175,13 @@ var progressCmd = &cobra.Command{
 			}
 		} else {
 			// Show progress for current list
-			featureName, err := pkg.GetFeatureName()
+			currentList, err := pkg.GetCurrentList()
 			if err != nil {
-				fmt.Printf("Error getting feature name: %v\n", err)
+				fmt.Printf("Error getting current list: %v\n", err)
 				return
 			}
 			
-			err = pkg.DisplayTodoList(featureName)
+			err = pkg.DisplayTodoList(currentList)
 			if err != nil {
 				fmt.Printf("Error displaying todo list: %v\n", err)
 				return
@@ -191,10 +192,11 @@ var progressCmd = &cobra.Command{
 
 var listCmd = &cobra.Command{
 	Use:   "list [list-name]",
-	Short: "Show all lists or switch to/create/delete a specific list",
+	Short: "Show all lists, switch to lists, or create new lists\n                Available flags: --delete",
+	Long:  `Manage todo lists:\n\n  todo list                 Show all lists with progress\n  todo list <name>          Switch to or create list\n  todo list --delete <name> Delete list (requires confirmation)`,
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
@@ -207,35 +209,28 @@ var listCmd = &cobra.Command{
 			}
 			
 			listName := args[0]
-			branchName := "feature/" + listName
 			
-			// Check if we're currently on the branch we're trying to delete
-			currentBranch, err := pkg.GetCurrentBranch()
+			// Check if we're currently on the list we're trying to delete
+			currentList, err := pkg.GetCurrentList()
 			if err != nil {
-				fmt.Printf("Error getting current branch: %v\n", err)
+				fmt.Printf("Error getting current list: %v\n", err)
 				return
 			}
 			
-			if currentBranch == branchName {
-				fmt.Printf("Error: Cannot delete list '%s' because you are currently on it.\n", listName)
+			if currentList == listName {
+				fmt.Printf("Error: Cannot delete list '%s' because it is currently active.\n", listName)
 				fmt.Println("Switch to another list first (e.g., 'todo list main')")
 				return
 			}
 			
-			// Check if branch exists
-			branchExists, err := pkg.BranchExists(branchName)
-			if err != nil {
-				fmt.Printf("Error checking if branch exists: %v\n", err)
-				return
-			}
-			
-			if !branchExists {
+			// Check if list exists
+			if !pkg.ListExists(listName) {
 				fmt.Printf("List '%s' does not exist\n", listName)
 				return
 			}
 			
 			// Confirmation prompt
-			fmt.Printf("Are you sure you want to delete list '%s'? This will remove both the branch and todo file. (y/N): ", listName)
+			fmt.Printf("Are you sure you want to delete list '%s'? This will remove the todo file. (y/N): ", listName)
 			reader := bufio.NewReader(os.Stdin)
 			response, err := reader.ReadString('\n')
 			if err != nil {
@@ -249,17 +244,11 @@ var listCmd = &cobra.Command{
 				return
 			}
 			
-			// Delete the branch
-			err = pkg.DeleteBranch(branchName)
-			if err != nil {
-				fmt.Printf("Error deleting branch: %v\n", err)
-				return
-			}
-			
 			// Delete the todo file
-			todoFile := pkg.GetTodoFilePath(listName)
-			if err := os.Remove(todoFile); err != nil && !os.IsNotExist(err) {
-				fmt.Printf("Warning: Could not delete todo file: %v\n", err)
+			err = pkg.DeleteList(listName)
+			if err != nil {
+				fmt.Printf("Error deleting list: %v\n", err)
+				return
 			}
 			
 			fmt.Printf("Successfully deleted list '%s'\n", listName)
@@ -276,67 +265,24 @@ var listCmd = &cobra.Command{
 		} else {
 			// Switch to or create specific list
 			listName := args[0]
-			branchName := "feature/" + listName
 			
-			// Check for uncommitted changes before switching
-			hasChanges, err := pkg.HasUncommittedChanges()
+			// Set as current list
+			err := pkg.SetCurrentList(listName)
 			if err != nil {
-				fmt.Printf("Error checking for uncommitted changes: %v\n", err)
+				fmt.Printf("Error setting current list: %v\n", err)
 				return
 			}
 			
-			if hasChanges {
-				fmt.Println("⚠️  Warning: You have uncommitted changes that will be brought to the new branch.")
-				fmt.Println("Consider committing or stashing your changes first.")
-				fmt.Print("Do you want to continue? (y/N): ")
-				
-				reader := bufio.NewReader(os.Stdin)
-				response, err := reader.ReadString('\n')
-				if err != nil {
-					fmt.Printf("Error reading input: %v\n", err)
-					return
-				}
-				
-				response = strings.TrimSpace(strings.ToLower(response))
-				if response != "y" && response != "yes" {
-					fmt.Println("Operation cancelled.")
-					return
-				}
-			}
-			
-			// Check if branch exists
-			branchExists, err := pkg.BranchExists(branchName)
-			if err != nil {
-				fmt.Printf("Error checking branch existence: %v\n", err)
-				return
-			}
-			
-			if branchExists {
-				// Branch exists, just switch to it
-				err = pkg.SwitchBranch(branchName)
-				if err != nil {
-					fmt.Printf("Error switching to branch %s: %v\n", branchName, err)
-					return
-				}
-				fmt.Printf("Switched to existing list '%s'\n", listName)
-			} else {
-				// Branch doesn't exist, create it
-				err = pkg.CreateBranch(branchName)
-				if err != nil {
-					fmt.Printf("Error creating branch %s: %v\n", branchName, err)
-					return
-				}
-				fmt.Printf("Created and switched to list '%s'\n", listName)
-			}
-			
-			// Ensure todo file exists
+			// Create todo file if it doesn't exist
 			if !pkg.TodoFileExists(listName) {
 				err = pkg.CreateTodoFile(listName)
 				if err != nil {
 					fmt.Printf("Error creating todo file: %v\n", err)
 					return
 				}
-				fmt.Printf("Initialized todo file: .todo/%s.md\n", listName)
+				fmt.Printf("Created todo list '%s'\n", listName)
+			} else {
+				fmt.Printf("Switched to list '%s'\n", listName)
 			}
 			
 			// Display current todos
@@ -354,7 +300,7 @@ var historyCmd = &cobra.Command{
 	Short: "Show history of completed todos across all lists",
 	Long:  `Display a chronological history of all completed todos with timestamps, organized by date.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
@@ -374,26 +320,25 @@ var infoCmd = &cobra.Command{
 		fmt.Print(`# Todo CLI - LLM Assistant Guide
 
 ## Overview
-This is a Git-integrated CLI tool for managing branch-specific todo lists. Each todo list is tied to a Git branch and stored as a markdown file.
+This is a CLI tool for managing todo lists. Each todo list is stored as a markdown file in the .todo directory.
 
 ## Core Concepts
-- **Lists**: Each todo list corresponds to a Git branch (pattern: feature/<list-name>)
+- **Lists**: Each todo list is a separate markdown file
 - **Storage**: Todo items stored in .todo/<list-name>.md files
-- **Branch Integration**: Switching lists switches Git branches
-- **Safety**: Warns about uncommitted changes before switching
+- **Current List**: Track which list is currently active via .current-list file
 
 ## Available Commands
 
 ### 1. todo init
-Initialize a new todo-enabled git repository.
-- Use when: Directory is not a git repo or lacks proper setup
-- Creates: Git repository with todo infrastructure
+Initialize todo management in the current directory.
+- Use when: Directory lacks .todo setup
+- Creates: .todo directory for storing todo files
 
 ### 2. todo list [list-name]
 Manage todo lists (create, switch, view, delete).
 - 'todo list' - Show all lists with progress percentages
-- 'todo list <name>' - Switch to or create list (creates feature/<name> branch)
-- 'todo list --delete <name>' - Delete list and branch (requires confirmation)
+- 'todo list <name>' - Switch to or create list
+- 'todo list --delete <name>' - Delete list (requires confirmation)
 
 ### 3. todo add <item>
 Add todo item to current list.
@@ -419,31 +364,36 @@ Show progress for lists.
 ### 7. todo history
 Show chronological history of completed todos across all lists.
 
-### 8. todo version
+### 8. todo edit
+Open current list in your configured editor ($EDITOR).
+
+### 9. todo version
 Show CLI version.
 
 ## File Structure
 ` + "```" + `
 project/
 ├── .todo/
-│   ├── feature-name.md
-│   └── another-list.md
+│   ├── main.md
+│   ├── feature-auth.md
+│   └── bug-fixes.md
+├── .current-list
 └── [project files]
 ` + "```" + `
 
 ## Todo File Format
 Standard markdown with checkboxes:
 ` + "```" + `
-# Todo List for feature-name
+# Todo List for feature-auth
 
 - [ ] Incomplete task
-- [x] Completed task
+- [x] Completed task (completed: 2024-01-15 10:30)
 ` + "```" + `
 
 ## Common Workflows
 
-### Starting New Feature Work
-1. 'todo list feature-name' (creates branch + todo file)
+### Starting New Work
+1. 'todo list my-feature' (creates or switches to list)
 2. 'todo add "First task"'
 3. 'todo add "Second task"'
 4. Work and mark complete: 'todo check 1'
@@ -453,35 +403,32 @@ Standard markdown with checkboxes:
 - 'todo list' (all lists overview)
 - 'todo progress --all' (detailed all lists)
 
-### Switching Between Features
-- 'todo list other-feature' (switches branch + shows todos)
-- Warns if uncommitted changes exist
+### Switching Between Lists
+- 'todo list other-feature' (switches to different list)
 
 ### Cleanup
-- 'todo list --delete completed-feature' (removes branch + file)
+- 'todo list --delete completed-feature' (removes todo file)
 
 ## Error Handling
-- Requires git repository (suggests 'todo init' if missing)
-- Warns about uncommitted changes before branch switches
+- Creates .todo directory automatically if missing
 - Prevents deleting currently active list
 - Validates item numbers for check/uncheck
+- Confirms before deleting lists
 
 ## Tips for LLM Assistants
 1. Always check current status with 'todo progress' or 'todo list'
-2. Use descriptive names for lists (feature names, not generic terms)
+2. Use descriptive names for lists (feature names, project areas)
 3. Add todos in logical order (dependencies first)
 4. Check progress regularly to track completion
 5. Clean up completed lists to maintain organization
-6. Remember that switching lists switches Git branches
 
 ## Safety Features
-- Git repository validation
-- Uncommitted changes warnings
 - Delete confirmations
-- Branch existence checks
-- Current branch protection
+- Current list protection
+- Automatic directory creation
+- Timestamp tracking for completed items
 
-This tool is designed for developers who want to track feature-specific tasks while maintaining clean Git branch organization.
+This tool is designed for developers who want flexible todo management.
 `)
 	},
 }
@@ -489,19 +436,19 @@ This tool is designed for developers who want to track feature-specific tasks wh
 var editCmd = &cobra.Command{
 	Use:   "edit",
 	Short: "Open the current todo list in your configured editor",
-	Long:  `Open the current branch's todo file in your configured editor (set via $EDITOR environment variable).`,
+	Long:  `Open the current todo list file in your configured editor (set via $EDITOR environment variable).`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if requiresGitSetup() {
+		if requiresInit() {
 			return
 		}
 		
-		featureName, err := pkg.GetFeatureName()
+		currentList, err := pkg.GetCurrentList()
 		if err != nil {
-			fmt.Printf("Error getting feature name: %v\n", err)
+			fmt.Printf("Error getting current list: %v\n", err)
 			return
 		}
 		
-		err = pkg.EditTodoFile(featureName)
+		err = pkg.EditTodoFile(currentList)
 		if err != nil {
 			fmt.Printf("Error opening editor: %v\n", err)
 			return
@@ -537,6 +484,24 @@ func init() {
 }
 
 func main() {
+	rootCmd.SetUsageTemplate(`Usage:
+  {{.UseLine}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`)
+	
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

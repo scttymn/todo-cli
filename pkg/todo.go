@@ -347,7 +347,7 @@ func ShowHistory() error {
 	return nil
 }
 
-func EditTodoFile(branchName string) error {
+func EditTodoFile(listName string) error {
 	// Get the editor from environment variable
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
@@ -355,15 +355,15 @@ func EditTodoFile(branchName string) error {
 	}
 	
 	// Ensure the todo file exists
-	if !TodoFileExists(branchName) {
-		err := CreateTodoFile(branchName)
+	if !TodoFileExists(listName) {
+		err := CreateTodoFile(listName)
 		if err != nil {
 			return fmt.Errorf("failed to create todo file: %w", err)
 		}
 	}
 	
 	// Get the file path
-	filePath := GetTodoFilePath(branchName)
+	filePath := GetTodoFilePath(listName)
 	
 	// Execute the editor command
 	cmd := exec.Command(editor, filePath)
@@ -377,4 +377,33 @@ func EditTodoFile(branchName string) error {
 	}
 	
 	return nil
+}
+
+// GetCurrentList returns the currently active todo list name
+func GetCurrentList() (string, error) {
+	// Check if there's a .current-list file to track active list
+	currentListFile := ".current-list"
+	if content, err := os.ReadFile(currentListFile); err == nil {
+		return strings.TrimSpace(string(content)), nil
+	}
+	
+	// Default to "main" if no current list is set
+	return "main", nil
+}
+
+// SetCurrentList sets the active todo list
+func SetCurrentList(listName string) error {
+	currentListFile := ".current-list"
+	return os.WriteFile(currentListFile, []byte(listName), 0644)
+}
+
+// ListExists checks if a todo list exists
+func ListExists(listName string) bool {
+	return TodoFileExists(listName)
+}
+
+// DeleteList removes a todo list file
+func DeleteList(listName string) error {
+	filePath := GetTodoFilePath(listName)
+	return os.Remove(filePath)
 }

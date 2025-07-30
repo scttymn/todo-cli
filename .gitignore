@@ -1,5 +1,6 @@
-# Todo directory (local only)
+# Todo directory and current list (local only)
 .todo/
+.current-list
 
 # Go build artifacts
 todo-cli

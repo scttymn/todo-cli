@@ -460,7 +460,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show the version of todo CLI",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("todo CLI v0.2.0")
+		fmt.Println("todo CLI v0.3.0")
 	},
 }
 
